@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#6750a4" />
+    <meta name="description" content="Waza Battery Alarm — a voice reminder to plug in before the battery runs out." />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon-192.png" />
+    <title>Waza Battery Alarm</title>
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <div class="hero-icon" aria-hidden="true">⚡</div>
+        <div>
+          <h1>Waza Battery Alarm</h1>
+          <p>A friendly voice reminder to plug in before the battery runs out.</p>
+        </div>
+      </header>
+
+      <main>
+        <section class="card">
+          <h2>Status</h2>
+          <p id="support-note" class="note"></p>
+
+          <div class="stats">
+            <div class="stat">
+              <span>Battery</span>
+              <strong id="battery-level">—</strong>
+            </div>
+            <div class="stat">
+              <span>Power</span>
+              <strong id="power-state">—</strong>
+            </div>
+            <div class="stat">
+              <span>Monitoring</span>
+              <strong id="monitor-state">Off</strong>
+            </div>
+          </div>
+
+          <p id="status-message" class="muted"></p>
+        </section>
+
+        <div class="tab-panel" data-panel="alerts">
+          <section class="card">
+            <h2>Monitoring</h2>
+            <label class="check"><input id="monitoring-enabled" type="checkbox" /> Enable monitoring</label>
+            <p class="muted">Browser alerts work only while this tab is open.</p>
+          </section>
+
+          <section class="card">
+            <h2>Alert levels</h2>
+            <label class="check"><input id="alert-levels" type="checkbox" checked /> Use escalating levels</label>
+
+            <label for="threshold">Reminder at <output id="threshold-output" for="threshold">20%</output></label>
+            <input id="threshold" type="range" min="5" max="50" step="1" value="20" />
+
+            <label for="warning">Warning at <output id="warning-output" for="warning">10%</output></label>
+            <input id="warning" type="range" min="1" max="50" step="1" value="10" />
+
+            <label for="critical">Critical at <output id="critical-output" for="critical">5%</output></label>
+            <input id="critical" type="range" min="1" max="50" step="1" value="5" />
+
+            <label for="reminder-message">Reminder message</label>
+            <input id="reminder-message" type="text" value="Please connect the charger" maxlength="120" />
+
+            <label for="warning-message">Warning message</label>
+            <input id="warning-message" type="text" value="Battery is very low. Connect the charger now." maxlength="120" />
+
+            <label for="critical-message">Critical message</label>
+            <input id="critical-message" type="text" value="Battery critical. Connect the charger immediately." maxlength="120" />
+          </section>
+
+          <section class="card">
+            <h2>Timing</h2>
+            <label for="repeat">Repeat every <output id="repeat-output" for="repeat">5 min</output></label>
+            <input id="repeat" type="range" min="1" max="60" step="1" value="5" />
+
+            <label for="snooze">Snooze for <output id="snooze-output" for="snooze">5 min</output></label>
+            <input id="snooze" type="range" min="1" max="60" step="1" value="5" />
+
+            <label class="check"><input id="include-time-left" type="checkbox" checked /> Include time left in voice alerts</label>
+          </section>
+
+          <section class="card">
+            <h2>Quiet hours</h2>
+            <label class="check"><input id="quiet-enabled" type="checkbox" checked /> Enable quiet hours</label>
+
+            <label for="quiet-start">Start <output id="quiet-start-output" for="quiet-start">22:00</output></label>
+            <input id="quiet-start" type="range" min="0" max="23" step="1" value="22" />
+
+            <label for="quiet-end">End <output id="quiet-end-output" for="quiet-end">07:00</output></label>
+            <input id="quiet-end" type="range" min="0" max="23" step="1" value="7" />
+
+            <label class="check"><input id="critical-override" type="checkbox" checked /> Critical alerts still speak</label>
+          </section>
+        </div>
+
+        <div class="tab-panel" data-panel="charging" hidden>
+          <section class="card">
+            <h2>Charging</h2>
+            <label for="connected-message">Charger connected message</label>
+            <input id="connected-message" type="text" value="Charger connected" maxlength="120" />
+          </section>
+
+          <section class="card">
+            <label class="check"><input id="unplug-enabled" type="checkbox" checked /> Unplug reminder</label>
+
+            <label for="unplug-target">Unplug at <output id="unplug-target-output" for="unplug-target">80%</output></label>
+            <input id="unplug-target" type="range" min="50" max="100" step="1" value="80" />
+
+            <label for="unplug-message">Unplug message</label>
+            <input id="unplug-message" type="text" value="Battery reached the target. You can unplug the charger." maxlength="120" />
+          </section>
+
+          <section class="card">
+            <label class="check"><input id="slow-enabled" type="checkbox" checked /> Slow-charge warning</label>
+
+            <label for="slow-minutes">Check after <output id="slow-minutes-output" for="slow-minutes">7 min</output></label>
+            <input id="slow-minutes" type="range" min="1" max="60" step="1" value="7" />
+
+            <label for="slow-message">Slow-charge message</label>
+            <input id="slow-message" type="text" value="Slow charger detected. Check the cable." maxlength="120" />
+          </section>
+        </div>
+
+        <div class="tab-panel" data-panel="voice" hidden>
+          <section class="card">
+            <h2>Voice</h2>
+            <label for="voice-select">Voice</label>
+            <select id="voice-select">
+              <option value="">System default</option>
+            </select>
+
+            <label for="sound-select">Alarm sound</label>
+            <select id="sound-select">
+              <option value="built_in">Built-in beep</option>
+              <option value="notification">Notification chime</option>
+              <option value="silent">Silent</option>
+            </select>
+
+            <label class="check"><input id="voice-enabled" type="checkbox" checked /> Speak messages</label>
+            <label class="check"><input id="sound-enabled" type="checkbox" checked /> Play alarm sound</label>
+            <label class="check"><input id="notification-enabled" type="checkbox" checked /> Show notification</label>
+          </section>
+
+          <section class="card actions">
+            <button id="enable" class="primary" type="button">Enable alerts</button>
+            <button id="disable" type="button" disabled>Disable</button>
+            <button id="test" type="button">Test alert</button>
+            <button id="snooze-now" type="button" disabled>Snooze</button>
+          </section>
+        </div>
+
+        <div class="tab-panel" data-panel="appearance" hidden>
+          <section class="card">
+            <h2>Appearance</h2>
+            <label for="theme-select">Dark mode</label>
+            <select id="theme-select">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+            <p class="muted">System follows your device theme. Light and Dark stay fixed.</p>
+          </section>
+        </div>
+
+        <div class="tab-panel" data-panel="advanced" hidden>
+          <section class="card">
+            <h2>Advanced</h2>
+            <p class="muted">Browser alerts work only while this tab is open. The Android app is the dependable client.</p>
+            <button id="reset-settings" type="button">Reset all settings</button>
+          </section>
+
+          <section class="card">
+            <h2>About</h2>
+            <p>Waza Battery Alarm</p>
+            <p class="muted">Version 1.0</p>
+          </section>
+        </div>
+
+        <footer>
+          <p>
+            This PWA works in Chromium browsers while the tab is open. Use the Android app for
+            dependable background alerts.
+          </p>
+        </footer>
+      </main>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Settings sections">
+      <button type="button" data-tab="alerts" class="active">🔔<span>Alerts</span></button>
+      <button type="button" data-tab="charging">🔌<span>Charging</span></button>
+      <button type="button" data-tab="voice">🎙️<span>Voice</span></button>
+      <button type="button" data-tab="appearance">🌙<span>Appearance</span></button>
+      <button type="button" data-tab="advanced">⚙️<span>Advanced</span></button>
+    </nav>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

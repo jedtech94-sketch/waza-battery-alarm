@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Waza Battery Alarm</string>
+    <string name="widget_description">Shows battery status and toggles low-battery monitoring.</string>
+</resources>
