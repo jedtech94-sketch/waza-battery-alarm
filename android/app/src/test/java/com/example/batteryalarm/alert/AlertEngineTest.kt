@@ -73,9 +73,9 @@ class AlertEngineTest {
         val engine = AlertEngine()
         val settings = settings(repeatMinutes = 5)
 
-        assertTrue(engine.evaluate(snapshot(15), settings, now = 1_000L).shouldAlert)
-        assertFalse(engine.evaluate(snapshot(15), settings, now = 60_000L).shouldAlert)
-        assertTrue(engine.evaluate(snapshot(15), settings, now = 301_000L).shouldAlert)
+        assertTrue(engine.evaluate(snapshot(15), settings, now = 1_000_000L).shouldAlert)
+        assertFalse(engine.evaluate(snapshot(15), settings, now = 1_060_000L).shouldAlert)
+        assertTrue(engine.evaluate(snapshot(15), settings, now = 1_301_000L).shouldAlert)
     }
 
     @Test
