@@ -1,4 +1,4 @@
-import org.gradle.api.artifacts.repositories.RepositoriesMode
+import org.gradle.api.initialization.resolve.RepositoriesMode
 
 pluginManagement {
     repositories {
