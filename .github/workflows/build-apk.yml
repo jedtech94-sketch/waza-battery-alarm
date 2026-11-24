@@ -24,9 +24,8 @@ jobs:
       - name: Prepare Android SDK
         run: |
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
-          chmod +x "$SDKMANAGER"
-          yes | "$SDKMANAGER" --licenses > /dev/null || true
-          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          yes | bash "$SDKMANAGER" --licenses > /dev/null || true
+          bash "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: Set up Gradle 8.7
