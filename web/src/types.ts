@@ -3,6 +3,8 @@ export interface AppSettings {
   thresholdPercent: number;
   warningPercent: number;
   criticalPercent: number;
+  emergencyPercent: number;
+  simpleMode: boolean;
   alertLevelsEnabled: boolean;
   repeatIntervalMinutes: number;
   snoozeMinutes: number;
@@ -43,4 +45,5 @@ export interface AlertDecision {
   kind: AlertKind | null;
   severity: AlertSeverity;
   silent: boolean;
+  emergency?: boolean;
 }

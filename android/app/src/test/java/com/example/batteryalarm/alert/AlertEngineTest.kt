@@ -24,6 +24,7 @@ class AlertEngineTest {
         warningPercent = 10,
         criticalPercent = 5,
         alertLevelsEnabled = true,
+        simpleMode = false,
         repeatIntervalMinutes = repeatMinutes,
         quietHoursEnabled = false,
     )
@@ -114,5 +115,35 @@ class AlertEngineTest {
         )
 
         assertEquals(AlertKind.SLOW_CHARGE, decision.kind)
+    }
+
+    @Test
+    fun `simple mode alerts using the basic reminder level`() {
+        val engine = AlertEngine()
+        val settings = settings().copy(simpleMode = true)
+
+        val decision = engine.evaluate(snapshot(18), settings, now = 1_000_000L)
+
+        assertTrue(decision.shouldAlert)
+        assertEquals(AlertSeverity.REMINDER, decision.severity)
+        assertFalse(decision.emergency)
+    }
+
+    @Test
+    fun `emergency repeats every ten seconds until charging`() {
+        val engine = AlertEngine()
+        val settings = settings().copy(simpleMode = true, emergencyPercent = 6)
+
+        val first = engine.evaluate(snapshot(6), settings, now = 1_000_000L)
+        val second = engine.evaluate(snapshot(5), settings, now = 1_005_000L)
+        val third = engine.evaluate(snapshot(5), settings, now = 1_010_000L)
+
+        assertTrue(first.emergency)
+        assertFalse(second.shouldAlert)
+        assertTrue(third.emergency)
+
+        val charged = engine.evaluate(snapshot(7, charging = true), settings, now = 1_020_000L)
+        assertTrue(charged.shouldClear)
+        assertFalse(engine.evaluate(snapshot(7), settings, now = 1_030_000L).shouldAlert)
     }
 }

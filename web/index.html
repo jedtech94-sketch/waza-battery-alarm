@@ -50,6 +50,24 @@
           </section>
 
           <section class="card">
+            <h2>Simple mode</h2>
+            <label class="check"><input id="simple-mode" type="checkbox" checked /> Use classic beep + voice alert</label>
+            <p class="muted">Says "Battery low. Connect the charger." with the built-in beep.</p>
+          </section>
+
+          <section class="card" data-simple>
+            <h2>Classic alert</h2>
+            <label for="threshold">Alert at <output id="threshold-output" for="threshold">20%</output></label>
+            <input id="threshold" type="range" min="5" max="50" step="1" value="20" />
+
+            <label for="repeat">Repeat every <output id="repeat-output" for="repeat">5 min</output></label>
+            <input id="repeat" type="range" min="1" max="60" step="1" value="5" />
+
+            <p class="muted">Emergency: at 6% and below, the alert repeats every 10 seconds until the charger is connected.</p>
+          </section>
+
+          <div data-advanced>
+          <section class="card">
             <h2>Alert levels</h2>
             <label class="check"><input id="alert-levels" type="checkbox" checked /> Use escalating levels</label>
 
@@ -95,6 +113,7 @@
 
             <label class="check"><input id="critical-override" type="checkbox" checked /> Critical alerts still speak</label>
           </section>
+          </div>
         </div>
 
         <div class="tab-panel" data-panel="charging" hidden>
@@ -176,7 +195,7 @@
           <section class="card">
             <h2>About</h2>
             <p>Waza Battery Alarm</p>
-            <p class="muted">Version 1.0</p>
+            <p class="muted">Version 1.1.0</p>
           </section>
         </div>
 

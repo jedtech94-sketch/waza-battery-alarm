@@ -28,7 +28,9 @@ class SettingsRepository(private val context: Context) {
         monitoringEnabled = this[Keys.MONITORING_ENABLED] ?: false,
         thresholdPercent = this[Keys.THRESHOLD_PERCENT] ?: 20,
         warningPercent = this[Keys.WARNING_PERCENT] ?: 10,
-        criticalPercent = this[Keys.CRITICAL_PERCENT] ?: 5,
+        criticalPercent = this[Keys.CRITICAL_PERCENT] ?: 6,
+        emergencyPercent = this[Keys.EMERGENCY_PERCENT] ?: 6,
+        simpleMode = this[Keys.SIMPLE_MODE] ?: true,
         alertLevelsEnabled = this[Keys.ALERT_LEVELS_ENABLED] ?: true,
         repeatIntervalMinutes = this[Keys.REPEAT_INTERVAL_MINUTES] ?: 5,
         snoozeMinutes = this[Keys.SNOOZE_MINUTES] ?: 5,
@@ -60,6 +62,8 @@ class SettingsRepository(private val context: Context) {
         this[Keys.THRESHOLD_PERCENT] = thresholdPercent.coerceIn(5, 50)
         this[Keys.WARNING_PERCENT] = warningPercent.coerceIn(1, 50)
         this[Keys.CRITICAL_PERCENT] = criticalPercent.coerceIn(1, 50)
+        this[Keys.EMERGENCY_PERCENT] = emergencyPercent.coerceIn(1, 20)
+        this[Keys.SIMPLE_MODE] = simpleMode
         this[Keys.ALERT_LEVELS_ENABLED] = alertLevelsEnabled
         this[Keys.REPEAT_INTERVAL_MINUTES] = repeatIntervalMinutes.coerceIn(1, 60)
         this[Keys.SNOOZE_MINUTES] = snoozeMinutes.coerceIn(1, 60)
@@ -91,6 +95,8 @@ class SettingsRepository(private val context: Context) {
         val THRESHOLD_PERCENT = intPreferencesKey("threshold_percent")
         val WARNING_PERCENT = intPreferencesKey("warning_percent")
         val CRITICAL_PERCENT = intPreferencesKey("critical_percent")
+        val EMERGENCY_PERCENT = intPreferencesKey("emergency_percent")
+        val SIMPLE_MODE = booleanPreferencesKey("simple_mode")
         val ALERT_LEVELS_ENABLED = booleanPreferencesKey("alert_levels_enabled")
         val REPEAT_INTERVAL_MINUTES = intPreferencesKey("repeat_interval_minutes")
         val SNOOZE_MINUTES = intPreferencesKey("snooze_minutes")

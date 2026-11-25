@@ -41,10 +41,12 @@ export class AlertController {
     return Notification.requestPermission();
   }
 
-  play(message: string, settings: AppSettings): void {
+  play(message: string, settings: AppSettings, forceBuiltIn = false): void {
+    const soundKey = forceBuiltIn ? "built_in" : settings.selectedSoundKey;
+
     if (settings.voiceEnabled) this.speak(message);
-    if (settings.soundEnabled && settings.selectedSoundKey !== "silent") {
-      this.playTone(settings.selectedSoundKey);
+    if (settings.soundEnabled && soundKey !== "silent") {
+      this.playTone(soundKey);
     }
     if (settings.notificationEnabled) this.notify(message);
   }

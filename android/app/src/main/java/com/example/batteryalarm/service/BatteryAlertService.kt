@@ -7,6 +7,7 @@ import android.content.pm.ServiceInfo
 import android.media.AudioManager
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import com.example.batteryalarm.alert.AlertDecision
 import com.example.batteryalarm.alert.AlertEngine
@@ -43,6 +44,10 @@ class BatteryAlertService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val audioManager: AudioManager by lazy { getSystemService(AudioManager::class.java) }
+    private val wakeLock by lazy {
+        getSystemService(PowerManager::class.java)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WazaBatteryAlarm:emergency")
+    }
 
     private var settings = AppSettings()
     private var snapshot: BatterySnapshot? = null
@@ -52,6 +57,7 @@ class BatteryAlertService : Service() {
     private var foregroundStarted = false
     private var monitorStarted = false
     private var lastKnownCharging: Boolean? = null
+    private var appliedSoundKey: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -103,8 +109,13 @@ class BatteryAlertService : Service() {
             if (action == ACTION_TEST) {
                 val monitoringWasActive = monitorStarted
                 snapshot = batteryMonitor.peek()
+                val testBase = if (settings.simpleMode) {
+                    "Battery low. Connect the charger"
+                } else {
+                    settings.voiceMessage
+                }
                 playAlertMessage(
-                    message = withPercent(settings.voiceMessage, snapshot?.percent),
+                    message = withPercent(testBase, snapshot?.percent),
                     severity = AlertSeverity.REMINDER,
                     kind = AlertKind.LOW_BATTERY,
                     silent = false,
@@ -175,7 +186,7 @@ class BatteryAlertService : Service() {
             settingsRepository.settingsFlow.collect { updated ->
                 settings = updated
                 voiceAlerter.applyVoice(updated.selectedVoiceName)
-                soundAlerter.setSound(updated.selectedSoundKey)
+                ensureSound(if (updated.simpleMode) "built_in" else updated.selectedSoundKey)
 
                 if (!updated.monitoringEnabled) {
                     if (monitorStarted) stopMonitoring()
@@ -259,11 +270,20 @@ class BatteryAlertService : Service() {
             severity = decision.severity,
             kind = decision.kind ?: AlertKind.LOW_BATTERY,
             silent = decision.silent,
+            emergency = decision.emergency,
         )
     }
 
     private fun messageFor(decision: AlertDecision): String {
         val percent = snapshot?.percent
+
+        if (decision.emergency) {
+            return withPercent("Battery critical. Connect the charger now", percent)
+        }
+
+        if (settings.simpleMode && decision.kind == AlertKind.LOW_BATTERY) {
+            return withPercent("Battery low. Connect the charger", percent)
+        }
 
         return when (decision.kind) {
             AlertKind.UNPLUG -> withPercent(settings.unplugMessage, percent)
@@ -295,7 +315,15 @@ class BatteryAlertService : Service() {
         severity: AlertSeverity,
         kind: AlertKind,
         silent: Boolean,
+        emergency: Boolean = false,
     ) {
+        val soundKey = if (emergency || settings.simpleMode) "built_in" else settings.selectedSoundKey
+        ensureSound(soundKey)
+
+        if (emergency) {
+            runCatching { wakeLock.acquire(EMERGENCY_WAKE_LOCK_MS) }
+        }
+
         if (!silent) {
             maximizeAlertVolume()
         }
@@ -306,6 +334,12 @@ class BatteryAlertService : Service() {
         if (settings.notificationEnabled) {
             snapshot?.let { notificationAlerter.showAlert(it, message, severity, kind) }
         }
+    }
+
+    private fun ensureSound(key: String) {
+        if (appliedSoundKey == key) return
+        soundAlerter.setSound(key)
+        appliedSoundKey = key
     }
 
     private fun maximizeAlertVolume() {
@@ -342,8 +376,9 @@ class BatteryAlertService : Service() {
         const val ACTION_TEST = "com.example.batteryalarm.action.TEST"
 
         private const val NOTIFICATION_ID = 1001
-        private const val TICK_INTERVAL_MS = 15_000L
+        private const val TICK_INTERVAL_MS = 5_000L
         private const val TEST_ALERT_DURATION_MS = 8_000L
+        private const val EMERGENCY_WAKE_LOCK_MS = 15_000L
 
         fun start(context: Context) {
             val intent = Intent(context, BatteryAlertService::class.java).apply {

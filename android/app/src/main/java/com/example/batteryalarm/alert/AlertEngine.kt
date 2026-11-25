@@ -23,6 +23,7 @@ data class AlertDecision(
     val shouldClear: Boolean = false,
     val silent: Boolean = false,
     val timeLeftMinutes: Int? = null,
+    val emergency: Boolean = false,
 ) {
     val shouldAlert: Boolean
         get() = kind != null
@@ -36,6 +37,8 @@ class AlertEngine(private val hysteresisPercent: Int = 5) {
     private var chargingSessionStartAt = 0L
     private var unplugAlerted = false
     private var slowChargeAlerted = false
+    private var emergencyActive = false
+    private var lastEmergencyAt = 0L
 
     fun evaluate(
         snapshot: BatterySnapshot,
@@ -48,14 +51,72 @@ class AlertEngine(private val hysteresisPercent: Int = 5) {
             return AlertDecision(shouldClear = true)
         }
 
-        return if (snapshot.isCharging) {
-            evaluateCharging(snapshot, settings, now)
+        if (snapshot.isCharging) {
+            if (emergencyActive) {
+                emergencyActive = false
+                lastEmergencyAt = 0L
+            }
+            return evaluateCharging(snapshot, settings, now)
+        }
+
+        val emergencyLevel = settings.emergencyPercent.coerceIn(1, 20)
+
+        if (emergencyActive || snapshot.percent <= emergencyLevel) {
+            emergencyActive = true
+            if (now - lastEmergencyAt >= EMERGENCY_REPEAT_MS) {
+                lastEmergencyAt = now
+                return AlertDecision(
+                    kind = AlertKind.LOW_BATTERY,
+                    severity = AlertSeverity.CRITICAL,
+                    silent = false,
+                    emergency = true,
+                )
+            }
+            return AlertDecision()
+        }
+
+        return if (settings.simpleMode) {
+            evaluateSimple(snapshot, settings, now)
         } else {
-            evaluateDischarging(snapshot, settings, now, timeLeftMinutes)
+            evaluateAdvanced(snapshot, settings, now, timeLeftMinutes)
         }
     }
 
-    private fun evaluateDischarging(
+    private fun evaluateSimple(
+        snapshot: BatterySnapshot,
+        settings: AppSettings,
+        now: Long,
+    ): AlertDecision {
+        chargingSessionStartLevel = null
+        unplugAlerted = false
+        slowChargeAlerted = false
+
+        val resetLevel = settings.thresholdPercent + hysteresisPercent
+        if (snapshot.percent > resetLevel) {
+            resetLowBatteryState()
+            return AlertDecision(shouldClear = true)
+        }
+
+        if (snapshot.percent > settings.thresholdPercent) {
+            return AlertDecision()
+        }
+
+        val repeatIntervalMs = max(1, settings.repeatIntervalMinutes) * 60_000L
+        val last = lastAlertAt[AlertSeverity.REMINDER] ?: 0L
+
+        if (now >= snoozedUntil && now - last >= repeatIntervalMs) {
+            lastAlertAt[AlertSeverity.REMINDER] = now
+            return AlertDecision(
+                kind = AlertKind.LOW_BATTERY,
+                severity = AlertSeverity.REMINDER,
+                silent = false,
+            )
+        }
+
+        return AlertDecision()
+    }
+
+    private fun evaluateAdvanced(
         snapshot: BatterySnapshot,
         settings: AppSettings,
         now: Long,
@@ -100,6 +161,11 @@ class AlertEngine(private val hysteresisPercent: Int = 5) {
         settings: AppSettings,
         now: Long,
     ): AlertDecision {
+        if (settings.simpleMode) {
+            resetLowBatteryState()
+            return AlertDecision(shouldClear = true)
+        }
+
         if (chargingSessionStartLevel == null) {
             chargingSessionStartLevel = snapshot.percent
             chargingSessionStartAt = now
@@ -185,5 +251,11 @@ class AlertEngine(private val hysteresisPercent: Int = 5) {
         chargingSessionStartAt = 0L
         unplugAlerted = false
         slowChargeAlerted = false
+        emergencyActive = false
+        lastEmergencyAt = 0L
+    }
+
+    private companion object {
+        const val EMERGENCY_REPEAT_MS = 10_000L
     }
 }

@@ -11,6 +11,7 @@ function byId<T extends HTMLElement>(id: string): T {
 }
 
 const monitoringEnabled = byId<HTMLInputElement>("monitoring-enabled");
+const simpleMode = byId<HTMLInputElement>("simple-mode");
 const alertLevels = byId<HTMLInputElement>("alert-levels");
 const threshold = byId<HTMLInputElement>("threshold");
 const thresholdOutput = byId<HTMLOutputElement>("threshold-output");
@@ -73,6 +74,8 @@ let chargingSessionStartAt = 0;
 let unplugAlerted = false;
 let slowChargeAlerted = false;
 let lastKnownCharging: boolean | null = null;
+let emergencyActive = false;
+let lastEmergencyAt = 0;
 
 function setStatus(text: string): void {
   statusMessage.textContent = text;
@@ -112,10 +115,13 @@ function resetAllState(): void {
   unplugAlerted = false;
   slowChargeAlerted = false;
   lastKnownCharging = null;
+  emergencyActive = false;
+  lastEmergencyAt = 0;
 }
 
 function renderSettings(): void {
   monitoringEnabled.checked = settings.monitoringEnabled;
+  simpleMode.checked = settings.simpleMode;
   alertLevels.checked = settings.alertLevelsEnabled;
 
   threshold.value = String(settings.thresholdPercent);
@@ -158,10 +164,20 @@ function renderSettings(): void {
   voiceEnabled.checked = settings.voiceEnabled;
   soundEnabled.checked = settings.soundEnabled;
   notificationEnabled.checked = settings.notificationEnabled;
+  applySimpleVisibility();
 }
 
 function persist(): void {
   saveSettings(settings);
+}
+
+function applySimpleVisibility(): void {
+  document.querySelectorAll<HTMLElement>("[data-simple]").forEach((element) => {
+    element.hidden = !settings.simpleMode;
+  });
+  document.querySelectorAll<HTMLElement>("[data-advanced]").forEach((element) => {
+    element.hidden = settings.simpleMode;
+  });
 }
 
 function bindRange(
@@ -183,6 +199,12 @@ function bindSettings(): void {
   monitoringEnabled.addEventListener("change", () => {
     if (monitoringEnabled.checked && !running) void enableMonitoring();
     if (!monitoringEnabled.checked && running) disableMonitoring();
+  });
+
+  simpleMode.addEventListener("change", () => {
+    settings.simpleMode = simpleMode.checked;
+    applySimpleVisibility();
+    persist();
   });
 
   alertLevels.addEventListener("change", () => {
@@ -310,6 +332,14 @@ function severityFor(percent: number): AlertSeverity {
 
 function decide(snapshot: BatterySnapshot, now: number): AlertDecision & { clear?: boolean } {
   if (snapshot.charging) {
+    emergencyActive = false;
+    lastEmergencyAt = 0;
+
+    if (settings.simpleMode) {
+      resetLowBatteryState();
+      return { kind: null, severity: "reminder", silent: false, clear: true };
+    }
+
     if (chargingSessionStartLevel === null) {
       chargingSessionStartLevel = snapshot.percent;
       chargingSessionStartAt = now;
@@ -351,6 +381,36 @@ function decide(snapshot: BatterySnapshot, now: number): AlertDecision & { clear
   unplugAlerted = false;
   slowChargeAlerted = false;
 
+  if (emergencyActive || snapshot.percent <= settings.emergencyPercent) {
+    emergencyActive = true;
+    if (now - lastEmergencyAt >= 10_000) {
+      lastEmergencyAt = now;
+      return { kind: "low", severity: "critical", silent: false, emergency: true };
+    }
+    return { kind: null, severity: "critical", silent: false };
+  }
+
+  if (settings.simpleMode) {
+    if (snapshot.percent > settings.thresholdPercent + 5) {
+      resetLowBatteryState();
+      return { kind: null, severity: "reminder", silent: false, clear: true };
+    }
+
+    if (snapshot.percent > settings.thresholdPercent) {
+      return { kind: null, severity: "reminder", silent: false };
+    }
+
+    const last = lastAlertAt.get("reminder") ?? 0;
+    const repeatMs = settings.repeatIntervalMinutes * 60_000;
+
+    if (now >= snoozedUntil && now - last >= repeatMs) {
+      lastAlertAt.set("reminder", now);
+      return { kind: "low", severity: "reminder", silent: false };
+    }
+
+    return { kind: null, severity: "reminder", silent: false };
+  }
+
   if (snapshot.percent > settings.thresholdPercent + 5) {
     resetLowBatteryState();
     return { kind: null, severity: "reminder", silent: false, clear: true };
@@ -391,6 +451,14 @@ function timeLeftText(): string {
 function messageFor(decision: AlertDecision): string {
   const percent = battery?.percent;
 
+  if (decision.emergency) {
+    return withPercent("Battery critical. Connect the charger now", percent);
+  }
+
+  if (settings.simpleMode && decision.kind === "low") {
+    return withPercent("Battery low. Connect the charger", percent);
+  }
+
   if (decision.kind === "unplug") return withPercent(settings.unplugMessage, percent);
   if (decision.kind === "slow") return withPercent(settings.slowChargeMessage, percent);
 
@@ -404,7 +472,7 @@ function messageFor(decision: AlertDecision): string {
 }
 
 function fireDecision(decision: AlertDecision): void {
-  alerts.play(messageFor(decision), settings);
+  alerts.play(messageFor(decision), settings, decision.emergency === true || settings.simpleMode);
   const label = decision.kind === "unplug"
     ? "Unplug reminder"
     : decision.kind === "slow"
@@ -538,7 +606,7 @@ if ("speechSynthesis" in window) {
   window.speechSynthesis.addEventListener("voiceschanged", populateVoices);
 }
 
-window.setInterval(evaluate, 15_000);
+window.setInterval(evaluate, 5_000);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

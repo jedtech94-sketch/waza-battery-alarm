@@ -11,7 +11,9 @@ This repository contains two clients:
 
 Both clients use the same rules:
 
-- Escalating alerts: reminder at **20%**, warning at **10%**, critical at **5%** — all configurable.
+- **Simple mode** is on by default: classic beep + “Battery low. Connect the charger.”
+- Advanced mode adds escalating alerts: reminder at **20%**, warning at **10%**, critical at **6%** — all configurable.
+- **Emergency mode** at **6% and below**: repeats voice + beep every **10 seconds** until the charger is connected, overriding quiet hours, snooze, and Simple mode.
 - Quiet hours: **22:00–07:00** by default. Normal alerts become notification-only; critical alerts still speak.
 - Repeat every `repeatIntervalMinutes` until charging starts.
 - Snooze and Stop actions.

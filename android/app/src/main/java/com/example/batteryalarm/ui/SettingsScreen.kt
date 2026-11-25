@@ -197,141 +197,187 @@ private fun AlertsTab(viewModel: SettingsViewModel, settings: AppSettings) {
     }
 
     SectionCard {
-        Text("Alert levels", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
         SwitchRow(
-            label = "Use escalating levels",
-            description = "Reminder, warning, and critical messages.",
-            checked = settings.alertLevelsEnabled,
+            label = "Simple mode",
+            description = "Classic beep + 'Battery low. Connect the charger.'",
+            checked = settings.simpleMode,
             onCheckedChange = { enabled ->
-                viewModel.update { it.copy(alertLevelsEnabled = enabled) }
-            },
-        )
-
-        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-
-        Text("Reminder at ${settings.thresholdPercent}%")
-        Slider(
-            value = settings.thresholdPercent.toFloat(),
-            onValueChange = { value ->
-                viewModel.update { it.copy(thresholdPercent = value.toInt().coerceIn(5, 50)) }
-            },
-            valueRange = 5f..50f,
-            steps = 45,
-        )
-
-        Text("Warning at ${settings.warningPercent}%")
-        Slider(
-            value = settings.warningPercent.toFloat(),
-            onValueChange = { value ->
-                viewModel.update { it.copy(warningPercent = value.toInt().coerceIn(1, 50)) }
-            },
-            valueRange = 1f..50f,
-            steps = 48,
-        )
-
-        Text("Critical at ${settings.criticalPercent}%")
-        Slider(
-            value = settings.criticalPercent.toFloat(),
-            onValueChange = { value ->
-                viewModel.update { it.copy(criticalPercent = value.toInt().coerceIn(1, 50)) }
-            },
-            valueRange = 1f..50f,
-            steps = 48,
-        )
-
-        Spacer(Modifier.height(8.dp))
-        MessageField(
-            label = "Reminder message",
-            value = settings.voiceMessage,
-            onChange = { viewModel.update { s -> s.copy(voiceMessage = it) } },
-        )
-        MessageField(
-            label = "Warning message",
-            value = settings.warningMessage,
-            onChange = { viewModel.update { s -> s.copy(warningMessage = it) } },
-        )
-        MessageField(
-            label = "Critical message",
-            value = settings.criticalMessage,
-            onChange = { viewModel.update { s -> s.copy(criticalMessage = it) } },
-        )
-    }
-
-    SectionCard {
-        Text("Timing", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-        Text("Repeat every ${settings.repeatIntervalMinutes} min")
-        Slider(
-            value = settings.repeatIntervalMinutes.toFloat(),
-            onValueChange = { value ->
-                viewModel.update { it.copy(repeatIntervalMinutes = value.toInt().coerceIn(1, 60)) }
-            },
-            valueRange = 1f..60f,
-            steps = 59,
-        )
-
-        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-
-        Text("Snooze for ${settings.snoozeMinutes} min")
-        Slider(
-            value = settings.snoozeMinutes.toFloat(),
-            onValueChange = { value ->
-                viewModel.update { it.copy(snoozeMinutes = value.toInt().coerceIn(1, 60)) }
-            },
-            valueRange = 1f..60f,
-            steps = 59,
-        )
-
-        SwitchRow(
-            label = "Include time left",
-            description = "Add an estimated time-left to low-battery voice alerts.",
-            checked = settings.includeTimeLeft,
-            onCheckedChange = { enabled ->
-                viewModel.update { it.copy(includeTimeLeft = enabled) }
+                viewModel.update { it.copy(simpleMode = enabled) }
             },
         )
     }
 
-    SectionCard {
-        Text("Quiet hours", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-        SwitchRow(
-            label = "Enable quiet hours",
-            description = "Normal alerts become notification-only at night.",
-            checked = settings.quietHoursEnabled,
-            onCheckedChange = { enabled ->
-                viewModel.update { it.copy(quietHoursEnabled = enabled) }
-            },
-        )
+    if (settings.simpleMode) {
+        SectionCard {
+            Text("Classic alert", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Text("Uses the built-in beep and the original voice message.", style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
 
-        Text("Start ${hourLabel(settings.quietStartHour)}")
-        Slider(
-            value = settings.quietStartHour.toFloat(),
-            onValueChange = { value ->
-                viewModel.update { it.copy(quietStartHour = value.toInt().coerceIn(0, 23)) }
-            },
-            valueRange = 0f..23f,
-            steps = 22,
-        )
+            Text("Alert at ${settings.thresholdPercent}%")
+            Slider(
+                value = settings.thresholdPercent.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(thresholdPercent = value.toInt().coerceIn(5, 50)) }
+                },
+                valueRange = 5f..50f,
+                steps = 45,
+            )
 
-        Text("End ${hourLabel(settings.quietEndHour)}")
-        Slider(
-            value = settings.quietEndHour.toFloat(),
-            onValueChange = { value ->
-                viewModel.update { it.copy(quietEndHour = value.toInt().coerceIn(0, 23)) }
-            },
-            valueRange = 0f..23f,
-            steps = 22,
-        )
+            Text("Repeat every ${settings.repeatIntervalMinutes} min")
+            Slider(
+                value = settings.repeatIntervalMinutes.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(repeatIntervalMinutes = value.toInt().coerceIn(1, 60)) }
+                },
+                valueRange = 1f..60f,
+                steps = 59,
+            )
 
-        SwitchRow(
-            label = "Critical alerts still speak",
-            checked = settings.criticalOverridesQuietHours,
-            onCheckedChange = { enabled ->
-                viewModel.update { it.copy(criticalOverridesQuietHours = enabled) }
-            },
-        )
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Text(
+                text = "Emergency: at ${settings.emergencyPercent}% and below, the alert repeats every 10 seconds until the charger is connected.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    } else {
+        SectionCard {
+            Text("Alert levels", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            SwitchRow(
+                label = "Use escalating levels",
+                description = "Reminder, warning, and critical messages.",
+                checked = settings.alertLevelsEnabled,
+                onCheckedChange = { enabled ->
+                    viewModel.update { it.copy(alertLevelsEnabled = enabled) }
+                },
+            )
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            Text("Reminder at ${settings.thresholdPercent}%")
+            Slider(
+                value = settings.thresholdPercent.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(thresholdPercent = value.toInt().coerceIn(5, 50)) }
+                },
+                valueRange = 5f..50f,
+                steps = 45,
+            )
+
+            Text("Warning at ${settings.warningPercent}%")
+            Slider(
+                value = settings.warningPercent.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(warningPercent = value.toInt().coerceIn(1, 50)) }
+                },
+                valueRange = 1f..50f,
+                steps = 48,
+            )
+
+            Text("Critical at ${settings.criticalPercent}%")
+            Slider(
+                value = settings.criticalPercent.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(criticalPercent = value.toInt().coerceIn(1, 50)) }
+                },
+                valueRange = 1f..50f,
+                steps = 48,
+            )
+
+            Spacer(Modifier.height(8.dp))
+            MessageField(
+                label = "Reminder message",
+                value = settings.voiceMessage,
+                onChange = { viewModel.update { s -> s.copy(voiceMessage = it) } },
+            )
+            MessageField(
+                label = "Warning message",
+                value = settings.warningMessage,
+                onChange = { viewModel.update { s -> s.copy(warningMessage = it) } },
+            )
+            MessageField(
+                label = "Critical message",
+                value = settings.criticalMessage,
+                onChange = { viewModel.update { s -> s.copy(criticalMessage = it) } },
+            )
+        }
+
+        SectionCard {
+            Text("Timing", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Text("Repeat every ${settings.repeatIntervalMinutes} min")
+            Slider(
+                value = settings.repeatIntervalMinutes.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(repeatIntervalMinutes = value.toInt().coerceIn(1, 60)) }
+                },
+                valueRange = 1f..60f,
+                steps = 59,
+            )
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+            Text("Snooze for ${settings.snoozeMinutes} min")
+            Slider(
+                value = settings.snoozeMinutes.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(snoozeMinutes = value.toInt().coerceIn(1, 60)) }
+                },
+                valueRange = 1f..60f,
+                steps = 59,
+            )
+
+            SwitchRow(
+                label = "Include time left",
+                description = "Add an estimated time-left to low-battery voice alerts.",
+                checked = settings.includeTimeLeft,
+                onCheckedChange = { enabled ->
+                    viewModel.update { it.copy(includeTimeLeft = enabled) }
+                },
+            )
+        }
+
+        SectionCard {
+            Text("Quiet hours", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            SwitchRow(
+                label = "Enable quiet hours",
+                description = "Normal alerts become notification-only at night.",
+                checked = settings.quietHoursEnabled,
+                onCheckedChange = { enabled ->
+                    viewModel.update { it.copy(quietHoursEnabled = enabled) }
+                },
+            )
+
+            Text("Start ${hourLabel(settings.quietStartHour)}")
+            Slider(
+                value = settings.quietStartHour.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(quietStartHour = value.toInt().coerceIn(0, 23)) }
+                },
+                valueRange = 0f..23f,
+                steps = 22,
+            )
+
+            Text("End ${hourLabel(settings.quietEndHour)}")
+            Slider(
+                value = settings.quietEndHour.toFloat(),
+                onValueChange = { value ->
+                    viewModel.update { it.copy(quietEndHour = value.toInt().coerceIn(0, 23)) }
+                },
+                valueRange = 0f..23f,
+                steps = 22,
+            )
+
+            SwitchRow(
+                label = "Critical alerts still speak",
+                checked = settings.criticalOverridesQuietHours,
+                onCheckedChange = { enabled ->
+                    viewModel.update { it.copy(criticalOverridesQuietHours = enabled) }
+                },
+            )
+        }
     }
 }
 
@@ -523,7 +569,7 @@ private fun AdvancedTab(
         Text("About", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         Text("Waza Battery Alarm")
-        Text("Version 1.0")
+        Text("Version 1.1.0")
         Text(
             text = "Use the home-screen widget or Quick Settings tile to toggle monitoring without opening the app.",
             style = MaterialTheme.typography.bodySmall,
