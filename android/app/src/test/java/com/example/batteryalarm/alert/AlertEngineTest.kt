@@ -144,6 +144,8 @@ class AlertEngineTest {
 
         val charged = engine.evaluate(snapshot(7, charging = true), settings, now = 1_020_000L)
         assertTrue(charged.shouldClear)
-        assertFalse(engine.evaluate(snapshot(7), settings, now = 1_030_000L).shouldAlert)
+        val afterUnplug = engine.evaluate(snapshot(7), settings, now = 1_030_000L)
+        assertFalse(afterUnplug.emergency)
+        assertTrue(afterUnplug.shouldAlert)
     }
 }
