@@ -387,12 +387,57 @@ private fun ChargingTab(
     settings: AppSettings,
 ) {
     SectionCard {
-        Text("Charging", style = MaterialTheme.typography.titleMedium)
+        Text("Charging announcements", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
+        SwitchRow(
+            label = "Enable charging announcements",
+            description = "Speak plug, unplug, and full-battery status.",
+            checked = settings.chargingAnnouncementsEnabled,
+            onCheckedChange = { enabled ->
+                viewModel.update { it.copy(chargingAnnouncementsEnabled = enabled) }
+            },
+        )
+
+        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+        SwitchRow(
+            label = "Charging started",
+            checked = settings.chargingStartedAnnouncementEnabled,
+            onCheckedChange = { enabled ->
+                viewModel.update { it.copy(chargingStartedAnnouncementEnabled = enabled) }
+            },
+        )
         MessageField(
-            label = "Charger connected message",
-            value = settings.chargerConnectedMessage,
-            onChange = { viewModel.update { s -> s.copy(chargerConnectedMessage = it) } },
+            label = "Started message",
+            value = settings.chargingStartedMessage,
+            onChange = { viewModel.update { s -> s.copy(chargingStartedMessage = it) } },
+        )
+
+        SwitchRow(
+            label = "Charger unplugged",
+            checked = settings.chargingUnpluggedAnnouncementEnabled,
+            onCheckedChange = { enabled ->
+                viewModel.update { it.copy(chargingUnpluggedAnnouncementEnabled = enabled) }
+            },
+        )
+        MessageField(
+            label = "Unplugged message",
+            value = settings.chargingUnpluggedMessage,
+            onChange = { viewModel.update { s -> s.copy(chargingUnpluggedMessage = it) } },
+        )
+        Text("The current battery percentage is added automatically.", style = MaterialTheme.typography.bodySmall)
+
+        SwitchRow(
+            label = "Charging complete at 100%",
+            checked = settings.chargingCompleteAnnouncementEnabled,
+            onCheckedChange = { enabled ->
+                viewModel.update { it.copy(chargingCompleteAnnouncementEnabled = enabled) }
+            },
+        )
+        MessageField(
+            label = "Complete message",
+            value = settings.chargingCompleteMessage,
+            onChange = { viewModel.update { s -> s.copy(chargingCompleteMessage = it) } },
         )
     }
 
@@ -569,7 +614,7 @@ private fun AdvancedTab(
         Text("About", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         Text("Waza Battery Alarm")
-        Text("Version 1.1.1")
+        Text("Version 1.2.0")
         Text(
             text = "Use the home-screen widget or Quick Settings tile to toggle monitoring without opening the app.",
             style = MaterialTheme.typography.bodySmall,

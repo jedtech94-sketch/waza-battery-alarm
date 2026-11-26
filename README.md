@@ -18,7 +18,11 @@ Both clients use the same rules:
 - Repeat every `repeatIntervalMinutes` until charging starts.
 - Snooze and Stop actions.
 - Re-arm after charging starts or the battery rises above `threshold + 5%`.
-- When the charger is connected, stop any active alert and say **“Charger connected.”**
+- Charging announcements with editable phrases and individual toggles:
+  - on plug: **“Charging started”**
+  - on unplug: **“Charger unplugged. Battery is at N percent.”**
+  - at 100%: **“Charging complete. Battery is full.”**
+- Charging announcements work even when low-battery monitoring is off.
 - Unplug reminder at **80%**, once per charging session.
 - Slow-charge warning after **7 minutes** with no battery rise.
 - Estimated time-left added to low-battery voice alerts when available.

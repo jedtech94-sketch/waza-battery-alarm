@@ -12,6 +12,13 @@ export interface AppSettings {
   warningMessage: string;
   criticalMessage: string;
   chargerConnectedMessage: string;
+  chargingAnnouncementsEnabled: boolean;
+  chargingStartedAnnouncementEnabled: boolean;
+  chargingUnpluggedAnnouncementEnabled: boolean;
+  chargingCompleteAnnouncementEnabled: boolean;
+  chargingStartedMessage: string;
+  chargingUnpluggedMessage: string;
+  chargingCompleteMessage: string;
   quietHoursEnabled: boolean;
   quietStartHour: number;
   quietEndHour: number;

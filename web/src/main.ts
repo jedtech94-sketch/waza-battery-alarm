@@ -41,7 +41,13 @@ const slowEnabled = byId<HTMLInputElement>("slow-enabled");
 const slowMinutes = byId<HTMLInputElement>("slow-minutes");
 const slowMinutesOutput = byId<HTMLOutputElement>("slow-minutes-output");
 const slowMessage = byId<HTMLInputElement>("slow-message");
-const connectedMessage = byId<HTMLInputElement>("connected-message");
+const chargingAnnouncements = byId<HTMLInputElement>("charging-announcements");
+const chargingStartedEnabled = byId<HTMLInputElement>("charging-started-enabled");
+const chargingStartedMessage = byId<HTMLInputElement>("charging-started-message");
+const chargingUnpluggedEnabled = byId<HTMLInputElement>("charging-unplugged-enabled");
+const chargingUnpluggedMessage = byId<HTMLInputElement>("charging-unplugged-message");
+const chargingCompleteEnabled = byId<HTMLInputElement>("charging-complete-enabled");
+const chargingCompleteMessage = byId<HTMLInputElement>("charging-complete-message");
 const voiceSelect = byId<HTMLSelectElement>("voice-select");
 const soundSelect = byId<HTMLSelectElement>("sound-select");
 const themeSelect = byId<HTMLSelectElement>("theme-select");
@@ -76,6 +82,7 @@ let slowChargeAlerted = false;
 let lastKnownCharging: boolean | null = null;
 let emergencyActive = false;
 let lastEmergencyAt = 0;
+let chargingCompleteAnnounced = false;
 
 function setStatus(text: string): void {
   statusMessage.textContent = text;
@@ -117,6 +124,7 @@ function resetAllState(): void {
   lastKnownCharging = null;
   emergencyActive = false;
   lastEmergencyAt = 0;
+  chargingCompleteAnnounced = false;
 }
 
 function renderSettings(): void {
@@ -157,7 +165,13 @@ function renderSettings(): void {
   slowMinutesOutput.value = `${settings.slowChargeCheckMinutes} min`;
   slowMessage.value = settings.slowChargeMessage;
 
-  connectedMessage.value = settings.chargerConnectedMessage;
+  chargingAnnouncements.checked = settings.chargingAnnouncementsEnabled;
+  chargingStartedEnabled.checked = settings.chargingStartedAnnouncementEnabled;
+  chargingStartedMessage.value = settings.chargingStartedMessage;
+  chargingUnpluggedEnabled.checked = settings.chargingUnpluggedAnnouncementEnabled;
+  chargingUnpluggedMessage.value = settings.chargingUnpluggedMessage;
+  chargingCompleteEnabled.checked = settings.chargingCompleteAnnouncementEnabled;
+  chargingCompleteMessage.value = settings.chargingCompleteMessage;
   voiceSelect.value = settings.selectedVoiceURI;
   soundSelect.value = settings.selectedSoundKey;
   themeSelect.value = settings.themeMode;
@@ -233,7 +247,9 @@ function bindSettings(): void {
     [criticalMessage, (v) => (settings.criticalMessage = v)],
     [unplugMessage, (v) => (settings.unplugMessage = v)],
     [slowMessage, (v) => (settings.slowChargeMessage = v)],
-    [connectedMessage, (v) => (settings.chargerConnectedMessage = v)],
+    [chargingStartedMessage, (v) => (settings.chargingStartedMessage = v)],
+    [chargingUnpluggedMessage, (v) => (settings.chargingUnpluggedMessage = v)],
+    [chargingCompleteMessage, (v) => (settings.chargingCompleteMessage = v)],
   ];
   for (const [input, apply] of textBindings) {
     input.addEventListener("input", () => {
@@ -243,6 +259,10 @@ function bindSettings(): void {
   }
 
   const checkboxBindings: Array<[HTMLInputElement, (value: boolean) => void]> = [
+    [chargingAnnouncements, (v) => (settings.chargingAnnouncementsEnabled = v)],
+    [chargingStartedEnabled, (v) => (settings.chargingStartedAnnouncementEnabled = v)],
+    [chargingUnpluggedEnabled, (v) => (settings.chargingUnpluggedAnnouncementEnabled = v)],
+    [chargingCompleteEnabled, (v) => (settings.chargingCompleteAnnouncementEnabled = v)],
     [includeTimeLeft, (v) => (settings.includeTimeLeft = v)],
     [quietEnabled, (v) => (settings.quietHoursEnabled = v)],
     [criticalOverride, (v) => (settings.criticalOverridesQuietHours = v)],
@@ -510,16 +530,46 @@ async function enableMonitoring(): Promise<void> {
     resetAllState();
     detachBattery = await subscribeBattery((snapshot) => {
       const justConnected = snapshot.charging && lastKnownCharging === false;
+      const justDisconnected = !snapshot.charging && lastKnownCharging === true;
+      const canAnnounce = settings.chargingAnnouncementsEnabled && settings.voiceEnabled;
+
       lastKnownCharging = snapshot.charging;
       battery = snapshot;
 
+      if (!snapshot.charging) chargingCompleteAnnounced = false;
+
+      if (justDisconnected) {
+        if (canAnnounce && settings.chargingUnpluggedAnnouncementEnabled) {
+          alerts.speak(
+            withPercent(settings.chargingUnpluggedMessage, snapshot.percent),
+          );
+          setStatus("Charger unplugged.");
+        }
+        window.setTimeout(() => evaluate(), 2_000);
+        return;
+      }
+
       evaluate();
 
-      if (justConnected && running && settings.voiceEnabled) {
+      if (!canAnnounce) return;
+
+      if (justConnected && settings.chargingStartedAnnouncementEnabled) {
+        alerts.speak(settings.chargingStartedMessage.trim() || "Charging started");
+        setStatus("Charging started. Low-battery alerts cancelled.");
+        return;
+      }
+
+      if (
+        snapshot.charging &&
+        snapshot.percent >= 100 &&
+        !chargingCompleteAnnounced &&
+        settings.chargingCompleteAnnouncementEnabled
+      ) {
+        chargingCompleteAnnounced = true;
         alerts.speak(
-          settings.chargerConnectedMessage.trim() || "Charger connected",
+          settings.chargingCompleteMessage.trim() || "Charging complete. Battery is full.",
         );
-        setStatus("Charger connected. Low-battery alerts cancelled.");
+        setStatus("Charging complete.");
       }
     });
 

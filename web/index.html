@@ -118,9 +118,21 @@
 
         <div class="tab-panel" data-panel="charging" hidden>
           <section class="card">
-            <h2>Charging</h2>
-            <label for="connected-message">Charger connected message</label>
-            <input id="connected-message" type="text" value="Charger connected" maxlength="120" />
+            <h2>Charging announcements</h2>
+            <label class="check"><input id="charging-announcements" type="checkbox" checked /> Enable charging announcements</label>
+
+            <label class="check"><input id="charging-started-enabled" type="checkbox" checked /> Charging started</label>
+            <label for="charging-started-message">Started message</label>
+            <input id="charging-started-message" type="text" value="Charging started" maxlength="120" />
+
+            <label class="check"><input id="charging-unplugged-enabled" type="checkbox" checked /> Charger unplugged</label>
+            <label for="charging-unplugged-message">Unplugged message</label>
+            <input id="charging-unplugged-message" type="text" value="Charger unplugged" maxlength="120" />
+            <p class="muted">The current battery percentage is added automatically.</p>
+
+            <label class="check"><input id="charging-complete-enabled" type="checkbox" checked /> Charging complete at 100%</label>
+            <label for="charging-complete-message">Complete message</label>
+            <input id="charging-complete-message" type="text" value="Charging complete. Battery is full." maxlength="120" />
           </section>
 
           <section class="card">
@@ -195,7 +207,7 @@
           <section class="card">
             <h2>About</h2>
             <p>Waza Battery Alarm</p>
-            <p class="muted">Version 1.1.1</p>
+            <p class="muted">Version 1.2.0</p>
           </section>
         </div>
 

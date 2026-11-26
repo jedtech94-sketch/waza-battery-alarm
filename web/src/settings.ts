@@ -16,6 +16,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
   warningMessage: "Battery is very low. Connect the charger now.",
   criticalMessage: "Battery critical. Connect the charger immediately.",
   chargerConnectedMessage: "Charger connected",
+  chargingAnnouncementsEnabled: true,
+  chargingStartedAnnouncementEnabled: true,
+  chargingUnpluggedAnnouncementEnabled: true,
+  chargingCompleteAnnouncementEnabled: true,
+  chargingStartedMessage: "Charging started",
+  chargingUnpluggedMessage: "Charger unplugged",
+  chargingCompleteMessage: "Charging complete. Battery is full.",
   quietHoursEnabled: true,
   quietStartHour: 22,
   quietEndHour: 7,
@@ -68,6 +75,23 @@ export function normalizeSettings(input: Partial<AppSettings>): AppSettings {
     chargerConnectedMessage: text(
       input.chargerConnectedMessage,
       DEFAULT_SETTINGS.chargerConnectedMessage,
+    ),
+    chargingAnnouncementsEnabled:
+      input.chargingAnnouncementsEnabled ?? DEFAULT_SETTINGS.chargingAnnouncementsEnabled,
+    chargingStartedAnnouncementEnabled:
+      input.chargingStartedAnnouncementEnabled ?? DEFAULT_SETTINGS.chargingStartedAnnouncementEnabled,
+    chargingUnpluggedAnnouncementEnabled:
+      input.chargingUnpluggedAnnouncementEnabled ?? DEFAULT_SETTINGS.chargingUnpluggedAnnouncementEnabled,
+    chargingCompleteAnnouncementEnabled:
+      input.chargingCompleteAnnouncementEnabled ?? DEFAULT_SETTINGS.chargingCompleteAnnouncementEnabled,
+    chargingStartedMessage: text(input.chargingStartedMessage, DEFAULT_SETTINGS.chargingStartedMessage),
+    chargingUnpluggedMessage: text(
+      input.chargingUnpluggedMessage,
+      DEFAULT_SETTINGS.chargingUnpluggedMessage,
+    ),
+    chargingCompleteMessage: text(
+      input.chargingCompleteMessage,
+      DEFAULT_SETTINGS.chargingCompleteMessage,
     ),
     quietHoursEnabled: input.quietHoursEnabled ?? DEFAULT_SETTINGS.quietHoursEnabled,
     quietStartHour: clamp(Number(input.quietStartHour ?? DEFAULT_SETTINGS.quietStartHour), 0, 23),

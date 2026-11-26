@@ -59,6 +59,7 @@ class BatteryAlertService : Service() {
     private var lastKnownCharging: Boolean? = null
     private var appliedSoundKey: String? = null
     private var voiceDelayJob: Job? = null
+    private var chargingCompleteAnnounced = false
 
     override fun onCreate() {
         super.onCreate()
@@ -100,6 +101,39 @@ class BatteryAlertService : Service() {
                 evaluateNow()
             }
             return START_STICKY
+        }
+
+        if (action == ACTION_CHARGING_CONNECTED || action == ACTION_CHARGING_DISCONNECTED) {
+            scope.launch {
+                settings = withContext(Dispatchers.IO) { settingsRepository.getOnce() }
+                startForegroundIfNeeded()
+                snapshot = batteryMonitor.peek()
+
+                if (action == ACTION_CHARGING_CONNECTED) {
+                    lastKnownCharging = true
+                    batteryHistory.reset()
+                    chargingCompleteAnnounced = false
+                    clearAlert()
+
+                    if (settings.chargingAnnouncementsEnabled && settings.chargingStartedAnnouncementEnabled) {
+                        announceCharging(settings.chargingStartedMessage)
+                    }
+                } else {
+                    lastKnownCharging = false
+                    chargingCompleteAnnounced = false
+
+                    if (settings.chargingAnnouncementsEnabled && settings.chargingUnpluggedAnnouncementEnabled) {
+                        announceCharging(withPercent(settings.chargingUnpluggedMessage, snapshot?.percent))
+                    }
+
+                    delay(UNPLUG_REARM_DELAY_MS)
+                    if (monitorStarted) evaluateNow()
+                }
+
+                delay(STATUS_ALERT_DURATION_MS)
+                if (!settings.monitoringEnabled) stopMonitoring()
+            }
+            return START_NOT_STICKY
         }
 
         startForegroundIfNeeded()
@@ -234,16 +268,20 @@ class BatteryAlertService : Service() {
         startForegroundIfNeeded()
         notificationAlerter.updateMonitoring(battery, settings.monitoringEnabled, timeLeftMinutes)
 
-        val justConnected = battery.isCharging && lastKnownCharging == false
         lastKnownCharging = battery.isCharging
 
         evaluateNow()
 
-        if (justConnected && settings.monitoringEnabled && settings.voiceEnabled) {
-            maximizeAlertVolume()
-            voiceAlerter.speak(
-                settings.chargerConnectedMessage.ifBlank { "Charger connected" },
-            )
+        if (!battery.isCharging) {
+            chargingCompleteAnnounced = false
+            return
+        }
+
+        if (battery.percent >= 100 && !chargingCompleteAnnounced) {
+            chargingCompleteAnnounced = true
+            if (settings.chargingAnnouncementsEnabled && settings.chargingCompleteAnnouncementEnabled) {
+                announceCharging(settings.chargingCompleteMessage)
+            }
         }
     }
 
@@ -347,6 +385,15 @@ class BatteryAlertService : Service() {
         }
     }
 
+    private fun announceCharging(message: String) {
+        if (!settings.voiceEnabled) return
+
+        voiceDelayJob?.cancel()
+        voiceDelayJob = null
+        maximizeAlertVolume()
+        voiceAlerter.speak(message)
+    }
+
     private fun ensureSound(key: String) {
         if (appliedSoundKey == key) return
         soundAlerter.setSound(key)
@@ -375,6 +422,7 @@ class BatteryAlertService : Service() {
         batteryMonitor.stop()
         monitorStarted = false
         lastKnownCharging = null
+        chargingCompleteAnnounced = false
         settingsObserver?.cancel()
         tickerJob?.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -387,12 +435,16 @@ class BatteryAlertService : Service() {
         const val ACTION_TOGGLE = "com.example.batteryalarm.action.TOGGLE"
         const val ACTION_SNOOZE = "com.example.batteryalarm.action.SNOOZE"
         const val ACTION_TEST = "com.example.batteryalarm.action.TEST"
+        const val ACTION_CHARGING_CONNECTED = "com.example.batteryalarm.action.CHARGING_CONNECTED"
+        const val ACTION_CHARGING_DISCONNECTED = "com.example.batteryalarm.action.CHARGING_DISCONNECTED"
 
         private const val NOTIFICATION_ID = 1001
         private const val TICK_INTERVAL_MS = 5_000L
         private const val TEST_ALERT_DURATION_MS = 8_000L
         private const val EMERGENCY_WAKE_LOCK_MS = 15_000L
         private const val BEEP_TO_VOICE_DELAY_MS = 900L
+        private const val STATUS_ALERT_DURATION_MS = 8_000L
+        private const val UNPLUG_REARM_DELAY_MS = 2_000L
 
         fun start(context: Context) {
             val intent = Intent(context, BatteryAlertService::class.java).apply {
