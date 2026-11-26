@@ -24,7 +24,7 @@ Both clients use the same rules:
 - Estimated time-left added to low-battery voice alerts when available.
 - Voice selection and alarm sound selection.
 - Dark mode setting with System, Light, and Dark options.
-- Alerts use maximum app-side volume. On Android the alarm stream is raised to its maximum; in a browser the page uses maximum gain but still follows the device/system volume.
+- Alerts use maximum app-side volume. The beep plays first, then the voice follows after the beep. On Android the alarm stream is raised to its maximum; in a browser the page uses maximum gain but still follows the device/system volume.
 
 ## Settings layout
 

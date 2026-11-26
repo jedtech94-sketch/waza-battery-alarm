@@ -12,6 +12,7 @@ export class AlertController {
   private audioContext: AudioContext | null = null;
   private readonly oscillators = new Set<OscillatorNode>();
   private voiceURI: string | null = null;
+  private speakTimer: number | null = null;
 
   async prime(): Promise<void> {
     const AudioContextClass = audioContextConstructor();
@@ -44,19 +45,38 @@ export class AlertController {
   play(message: string, settings: AppSettings, forceBuiltIn = false): void {
     const soundKey = forceBuiltIn ? "built_in" : settings.selectedSoundKey;
 
-    if (settings.voiceEnabled) this.speak(message);
+    if (this.speakTimer !== null) {
+      window.clearTimeout(this.speakTimer);
+      this.speakTimer = null;
+    }
+
     if (settings.soundEnabled && soundKey !== "silent") {
       this.playTone(soundKey);
+    }
+
+    if (settings.voiceEnabled) {
+      this.speakTimer = window.setTimeout(() => {
+        this.speakTimer = null;
+        this.speak(message);
+      }, 900);
     }
     if (settings.notificationEnabled) this.notify(message);
   }
 
   stop(): void {
+    if (this.speakTimer !== null) {
+      window.clearTimeout(this.speakTimer);
+      this.speakTimer = null;
+    }
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     this.stopTone();
   }
 
   speak(message: string): void {
+    if (this.speakTimer !== null) {
+      window.clearTimeout(this.speakTimer);
+      this.speakTimer = null;
+    }
     if (!("speechSynthesis" in window)) return;
 
     window.speechSynthesis.cancel();

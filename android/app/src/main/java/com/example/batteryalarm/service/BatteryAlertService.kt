@@ -58,6 +58,7 @@ class BatteryAlertService : Service() {
     private var monitorStarted = false
     private var lastKnownCharging: Boolean? = null
     private var appliedSoundKey: String? = null
+    private var voiceDelayJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -328,8 +329,18 @@ class BatteryAlertService : Service() {
             maximizeAlertVolume()
         }
 
-        if (settings.voiceEnabled && !silent) voiceAlerter.speak(message)
-        if (settings.soundEnabled && !silent) soundAlerter.play()
+        voiceDelayJob?.cancel()
+
+        if (settings.soundEnabled && !silent) {
+            soundAlerter.play()
+        }
+
+        if (settings.voiceEnabled && !silent) {
+            voiceDelayJob = scope.launch {
+                delay(BEEP_TO_VOICE_DELAY_MS)
+                voiceAlerter.speak(message)
+            }
+        }
 
         if (settings.notificationEnabled) {
             snapshot?.let { notificationAlerter.showAlert(it, message, severity, kind) }
@@ -350,6 +361,8 @@ class BatteryAlertService : Service() {
     }
 
     private fun clearAlert() {
+        voiceDelayJob?.cancel()
+        voiceDelayJob = null
         voiceAlerter.stop()
         soundAlerter.stop()
         notificationAlerter.clearAlert()
@@ -379,6 +392,7 @@ class BatteryAlertService : Service() {
         private const val TICK_INTERVAL_MS = 5_000L
         private const val TEST_ALERT_DURATION_MS = 8_000L
         private const val EMERGENCY_WAKE_LOCK_MS = 15_000L
+        private const val BEEP_TO_VOICE_DELAY_MS = 900L
 
         fun start(context: Context) {
             val intent = Intent(context, BatteryAlertService::class.java).apply {

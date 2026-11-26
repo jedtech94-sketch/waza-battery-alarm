@@ -569,7 +569,7 @@ private fun AdvancedTab(
         Text("About", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
         Text("Waza Battery Alarm")
-        Text("Version 1.1.0")
+        Text("Version 1.1.1")
         Text(
             text = "Use the home-screen widget or Quick Settings tile to toggle monitoring without opening the app.",
             style = MaterialTheme.typography.bodySmall,
